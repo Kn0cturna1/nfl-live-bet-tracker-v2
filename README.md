@@ -14,9 +14,12 @@ The existing app is public. Intake is limited per process to 40 requests per UTC
 ## Run
 `npm start`
 
-`DATABASE_URL` is required; `PORT` defaults to 3000. Existing PostgreSQL tables, screenshots, seed IDs, and Live/Settled/All views are preserved. This change needs no schema migration.
+`DATABASE_URL` is required; `PORT` defaults to 3000. Existing PostgreSQL tables, screenshots, seed IDs, and Live/Settled/All views are preserved. Startup also creates a small `deleted_bets` table to prevent deleted seeded tickets from returning after restarts.
 
 ## Verify and rollback
 `npm test` runs offline extraction and HTTP regression checks with an isolated in-memory database adapter. Production does not load the adapter. This plain Node/browser app has no compilation step; run `node --check` for changed JavaScript.
 
 After deployment, check `/health`, read the existing bets, upload a real screenshot, review the fields and uncertainty warnings, and confirm that the bet count is unchanged until Save. Do not save duplicate test tickets in production. Roll back using Railway's previous successful deployment; no database rollback is required.
+
+## Delete a ticket
+Each ticket has a Delete ticket button in every view. The confirmation names the game and amounts. DELETE /api/bets/:id requires JSON `{confirm:true}`. A single PostgreSQL statement removes the selected ticket (its image cascades through the existing foreign key) and records the deleted ID so initial seed tickets stay deleted. This removes only tracker records, not sportsbook wagers.

@@ -14,6 +14,19 @@ test('HTTP intake failure cannot mutate existing bets; manual saving remains ava
     const after=await (await fetch(root+'/api/bets')).json();assert.deepEqual(after.bets,before.bets);
     const bad=await fetch(root+'/api/bets',{method:'POST',body:JSON.stringify({wager:null,payout:100,legs:['test']})});assert.equal(bad.status,400);
     const good=await fetch(root+'/api/bets',{method:'POST',body:JSON.stringify({sportsbook:'Test',game:'Test game',wager:5,payout:10,legs:['Test leg']})});assert.equal(good.status,201);
+    const created=await good.json(),url=root+'/api/bets/'+created.id;
+    const picture={mime:'image/png',data:'iVBORw0KGgo='};
+    assert.equal((await fetch(url+'/image',{method:'POST',body:JSON.stringify(picture)})).status,201);
+    assert.equal((await fetch(url+'/image')).status,200);
+    const remove=body=>fetch(url,{method:'DELETE',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+    assert.equal((await remove({})).status,400);
+    assert.equal((await fetch(url,{method:'DELETE',headers:{'content-type':'application/json',origin:'https://unrelated.example'},body:JSON.stringify({confirm:true})})).status,403);
+    assert.equal((await (await fetch(root+'/api/bets')).json()).bets.length,5);
+    assert.equal((await remove({confirm:true})).status,200);
+    assert.equal((await fetch(url+'/image')).status,404);
+    assert.equal((await remove({confirm:true})).status,404);
+    assert.deepEqual((await (await fetch(root+'/api/bets')).json()).bets,before.bets);
+    assert.match(await (await fetch(root+'/app.js')).text(),/Delete ticket/);
     assert.equal((await fetch(root+'/health')).status,200);
     assert.match(await (await fetch(root+'/')).text(),/intake-ui.js/);
   }finally{child.kill();}

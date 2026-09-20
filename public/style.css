@@ -2,3 +2,5 @@
 .betFilters{display:flex;gap:8px;margin:8px 0 18px;overflow:auto}.betFilters button{background:#171a17;color:#cdd2cd;border:1px solid #343a34;padding:10px 15px;border-radius:999px;white-space:nowrap}.betFilters button.active{background:#39d329;color:#071007;border-color:#39d329}
 
 .uncertain{outline:2px solid #dfaa42}.check{display:flex;gap:10px;align-items:flex-start;margin:14px 0}.check input{width:auto}#uncertainList{color:#e9be68;font-size:13px;padding-left:20px}button:disabled{opacity:.5;cursor:wait}
+
+.ticketActions{display:flex;justify-content:flex-end;margin-top:14px}.deleteTicket{background:transparent;color:#ffaaaa;border:1px solid #703737;padding:10px 14px;font-size:14px}.deleteTicket:hover{background:#542020}
