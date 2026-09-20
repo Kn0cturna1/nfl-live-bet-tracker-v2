@@ -41,3 +41,7 @@ test('provider failures, refusals, truncation and malformed output return no dra
   for(const response of responses) await assert.rejects(analyze(image,{apiKey:'SECRET',fetchImpl:async()=>response}),e=>!e.message.includes('SECRET')&&e.status>=400);
   await assert.rejects(analyze(image,{apiKey:'SECRET',fetchImpl:async()=>{throw Error('SECRET')}}),e=>e.status===504&&!e.message.includes('SECRET'));
 });
+test('number-only selections cannot become saved leg labels',()=>{
+  const raw=ticket();raw.legs[0].label=field('60+');
+  const result=normalize(raw);assert.equal(result.draft.legs[0],null);assert.ok(result.uncertainFields.includes('legs.0.label'));
+});
