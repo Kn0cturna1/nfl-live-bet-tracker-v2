@@ -45,3 +45,7 @@ test('number-only selections cannot become saved leg labels',()=>{
   const raw=ticket();raw.legs[0].label=field('60+');
   const result=normalize(raw);assert.equal(result.draft.legs[0],null);assert.ok(result.uncertainFields.includes('legs.0.label'));
 });
+test('cropped tickets cannot promote subgroup odds to ticket odds',()=>{
+  const raw=ticket();raw.completeTicket=false;raw.odds=field('+355');raw.visibleLegCount=2;raw.legs.push(raw.legs[0]);
+  const result=normalize(raw);assert.equal(result.draft.odds,null);assert.ok(result.uncertainFields.includes('odds'));
+});
