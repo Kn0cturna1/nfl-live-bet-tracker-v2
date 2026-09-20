@@ -42,6 +42,13 @@ async function list(){
   let events=[],scoreboardError=false;
   try{events=await gameStatus.scoreboard()}catch{scoreboardError=true}
   const classified=rows.map(b=>({...b,...gameStatus.classify(b,events)}));
+  // Persist confirmed final games so old tickets do not return to Live after the scoreboard rolls over.
+  for(const bet of classified){
+    if(bet.status==='OPEN'&&bet.gameState==='post'&&bet.games.length===1){
+      await pool.query("UPDATE bets SET status='SETTLED' WHERE id=$1 AND status='OPEN'",[bet.id]);
+      bet.status='SETTLED';
+    }
+  }
   const ids=[...new Set(classified.filter(b=>b.games.length===1).map(b=>b.games[0].id))];
   const feeds=new Map(await Promise.all(ids.map(async id=>{try{return [id,await espnLive(id)]}catch{return [id,null]}})));
   return {bets:classified.map(b=>{
