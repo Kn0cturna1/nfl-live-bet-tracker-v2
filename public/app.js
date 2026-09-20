@@ -35,18 +35,3 @@ $('#form').onsubmit=async e=>{
 refresh().catch(()=>$('#stamp').textContent='Could not load tickets');
 setInterval(()=>refresh().catch(()=>$('#stamp').textContent='Could not refresh tickets'),30000);
 
-const deletingTickets=new Set();
-$('#bets').addEventListener('click',async event=>{
-  const button=event.target.closest('[data-delete-id]');if(!button)return;
-  const id=button.dataset.deleteId,bet=allBets.find(b=>b.id===id);
-  if(!bet||deletingTickets.has(id))return;
-  if(!confirm('Delete this ticket?\n\n'+bet.game+'\n'+money(bet.wager)+' wager → '+money(bet.payout)+' to pay\n\nThis permanently removes this ticket and its saved picture. It does not cancel the bet at your sportsbook.'))return;
-  deletingTickets.add(id);button.disabled=true;button.textContent='Deleting…';
-  try{
-    const response=await fetch('/api/bets/'+encodeURIComponent(id),{method:'DELETE',headers:{'content-type':'application/json'},body:JSON.stringify({confirm:true})});
-    if(!response.ok&&response.status!==404){const result=await response.json();throw Error(result.error||'Could not delete ticket.');}
-    allBets=allBets.filter(b=>b.id!==id);renderBets();
-    await refresh();$('#stamp').textContent='Ticket deleted.';
-  }catch(error){alert(error.message||'Could not delete ticket. Please refresh and try again.');button.disabled=false;button.textContent='Delete ticket';}
-  finally{deletingTickets.delete(id);}
-});

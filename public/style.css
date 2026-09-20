@@ -4,3 +4,5 @@
 .uncertain{outline:2px solid #dfaa42}.check{display:flex;gap:10px;align-items:flex-start;margin:14px 0}.check input{width:auto}#uncertainList{color:#e9be68;font-size:13px;padding-left:20px}button:disabled{opacity:.5;cursor:wait}
 
 .ticketActions{display:flex;justify-content:flex-end;margin-top:14px}.deleteTicket{background:transparent;color:#ffaaaa;border:1px solid #703737;padding:10px 14px;font-size:14px}.deleteTicket:hover{background:#542020}
+
+.deleteContent{padding:22px}.deleteContent h2{margin-top:0}.deleteContent li{margin:8px 0}.deleteActions{display:flex;gap:12px;flex-wrap:wrap}.deleteActions button{flex:1}#confirmDelete{background:#9d3030;color:white}#cancelDelete{background:#303730;color:white}#deleteError{color:#ffaaaa}dialog::backdrop{background:rgba(0,0,0,.7)}
