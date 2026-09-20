@@ -6,7 +6,31 @@ function ticketView(b){const legs=(b.legs||[]).map(legObj),hit=legs.filter(l=>l.
 let allBets=[],betFilter='LIVE';function isSettled(b){return ['WON','LOST','SETTLED'].includes(String(b.status||'').toUpperCase())}function renderBets(){const shown=betFilter==='ALL'?allBets:betFilter==='SETTLED'?allBets.filter(isSettled):allBets.filter(b=>!isSettled(b));$('#bets').innerHTML=shown.map(ticketView).join('')||`<p>No ${betFilter.toLowerCase()} bets.</p>`;document.querySelectorAll('.betFilters button').forEach(x=>x.classList.toggle('active',x.dataset.filter===betFilter))}async function refresh(){const r=await fetch('/api/bets',{cache:'no-store'});if(!r.ok)throw Error('load');const d=await r.json(),open=d.bets.filter(b=>!isSettled(b));allBets=d.bets;$('#risk').textContent=money(open.filter(b=>!b.bonusBet).reduce((s,b)=>s+Number(b.wager),0));$('#return').textContent=money(open.reduce((s,b)=>s+Number(b.payout),0));$('#count').textContent=open.length;$('#stamp').textContent='Updated '+new Date().toLocaleTimeString();renderBets()}
 document.querySelectorAll('.betFilters button').forEach(b=>b.onclick=()=>{betFilter=b.dataset.filter;renderBets()});
 let selectedShot=null;
-function chooseShot(file){selectedShot=file||null;const w=$('#previewWrap'),img=$('#shotPreview');if(!file){w.hidden=true;$('#photoMsg').textContent='No screenshot selected.';return}img.src=URL.createObjectURL(file);w.hidden=false;$('#photoMsg').textContent='Picture selected — it will be saved with this bet.'}
-$('#openAdd').onclick=()=>$('#dlg').showModal();$('#close').onclick=()=>$('#dlg').close();$('#cameraShot').onchange=e=>chooseShot(e.target.files[0]);$('#galleryShot').onchange=e=>chooseShot(e.target.files[0]);
+$('#openAdd').onclick=()=>$('#dlg').showModal();$('#close').onclick=()=>$('#dlg').close();
 function fileData(file){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>{const s=String(r.result),i=s.indexOf(',');ok({mime:file.type||'image/jpeg',data:s.slice(i+1)})};r.onerror=no;r.readAsDataURL(file)})}
-$('#form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),b={sportsbook:f.get('sportsbook'),game:f.get('game'),wager:Number(f.get('wager')),payout:Number(f.get('payout')),odds:f.get('odds'),promo:f.get('promo'),placedAt:new Date().toISOString(),legs:String(f.get('legs')).split('\n').map(x=>x.trim()).filter(Boolean)};$('#msg').textContent='Checking duplicate and saving…';const r=await fetch('/api/bets',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}),j=await r.json();if(!r.ok){$('#msg').textContent=j.error||'Could not save';return}if(selectedShot){$('#msg').textContent='Bet saved. Uploading picture…';const image=await fileData(selectedShot),ir=await fetch('/api/bets/'+encodeURIComponent(j.id)+'/image',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(image)});if(!ir.ok){$('#msg').textContent='Bet saved, but picture upload failed.';await refresh();return}}$('#msg').textContent='Bet and picture saved.';e.target.reset();selectedShot=null;$('#previewWrap').hidden=true;await refresh();setTimeout(()=>$('#dlg').close(),500)};refresh().catch(()=>$('#stamp').textContent='Could not load tickets');setInterval(refresh,30000);
+
+let saving=false, savedPendingImage=null;
+$('#form').onsubmit=async e=>{
+  e.preventDefault();if(saving)return;saving=true;$('#saveBet').disabled=true;
+  const shot=selectedShot;
+  const f=new FormData(e.target),b={sportsbook:f.get('sportsbook'),game:f.get('game'),wager:Number(f.get('wager')),payout:Number(f.get('payout')),odds:f.get('odds'),promo:f.get('promo'),bonusBet:f.get('bonusBet')==='on',placedAt:new Date().toISOString(),legs:String(f.get('legs')).split('\n').map(x=>x.trim()).filter(Boolean)};
+  for(const control of e.target.querySelectorAll('input,textarea'))control.disabled=true;
+  try{
+    if(!savedPendingImage){
+      $('#msg').textContent='Checking duplicate and saving…';
+      const r=await fetch('/api/bets',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}),j=await r.json();
+      if(!r.ok)throw Error(j.error||'Could not save');
+      savedPendingImage={id:j.id,shot};
+    }
+    if(savedPendingImage.shot){
+      $('#msg').textContent='Bet saved. Uploading picture…';
+      const image=await fileData(savedPendingImage.shot),ir=await fetch('/api/bets/'+encodeURIComponent(savedPendingImage.id)+'/image',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(image)});
+      if(!ir.ok)throw Error('Bet saved, but picture upload failed. Press Save again to retry the picture only.');
+    }
+    savedPendingImage=null;e.target.reset();selectedShot=null;$('#previewWrap').hidden=true;
+    $('#msg').textContent='Saved.';await refresh();$('#dlg').close();
+  }catch(error){$('#msg').textContent=error.message||'Could not save. Check your connection.';}
+  finally{saving=false;$('#saveBet').disabled=false;for(const control of e.target.querySelectorAll('input,textarea'))control.disabled=!!savedPendingImage;}
+};
+refresh().catch(()=>$('#stamp').textContent='Could not load tickets');
+setInterval(()=>refresh().catch(()=>$('#stamp').textContent='Could not refresh tickets'),30000);
